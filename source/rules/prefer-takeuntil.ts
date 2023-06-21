@@ -20,7 +20,7 @@ import { ruleCreator } from "../utils";
 const messages = {
   noDestroy: "`ngOnDestroy` is not implemented.",
   noTakeUntil:
-    "Forbids calling `subscribe` without an accompanying `takeUntil`.",
+    "Forbids calling `subscribe` without an accompanying `takeUntil` or `takeUntilDestroyed`.",
   notCalled: "`{{name}}.{{method}}()` not called.",
   notDeclared: "Subject `{{name}}` not a class property.",
 } as const;
@@ -38,7 +38,7 @@ const rule = ruleCreator({
   meta: {
     docs: {
       description:
-        "Forbids `subscribe` calls without an accompanying `takeUntil` within Angular components (and, optionally, within services, directives, and pipes).",
+        "Forbids `subscribe` calls without an accompanying `takeUntil` or `takeUntilDestroyed` within Angular components (and, optionally, within services, directives, and pipes).",
       recommended: false,
     },
     fixable: undefined,
@@ -55,7 +55,7 @@ const rule = ruleCreator({
         type: "object",
         description: stripIndent`
         An optional object with optional \`alias\`, \`checkComplete\`, \`checkDecorators\` and \`checkDestroy\` properties.
-        The \`alias\` property is an array containing the names of operators that aliases for \`takeUntil\`.
+        The \`alias\` property is an array containing the names of operators that aliases for \`takeUntil\` and \`takeUntilDestroyed\`.
         The \`checkComplete\` property is a boolean that determines whether or not \`complete\` must be called after \`next\`.
         The \`checkDecorators\` property is an array containing the names of the decorators that determine whether or not a class is checked.
         The \`checkDestroy\` property is a boolean that determines whether or not a \`Subject\`-based \`ngOnDestroy\` must be implemented.
@@ -131,11 +131,11 @@ const rule = ruleCreator({
         return;
       }
 
-      // If a subscription to a .pipe() has at least one takeUntil that has no
-      // failures, the subscribe call is fine. Callers should be able to use
-      // secondary takUntil operators. However, there must be at least one
-      // takeUntil operator that conforms to the pattern that this rule
-      // enforces.
+      // If a subscription to a .pipe() has at least one takeUntil or
+      // takeUntilDestroyed that has no failures, the subscribe call is fine.
+      // Callers should be able to use secondary takUntil operators. However,
+      // there must be at least one takeUntil or takeUntilDestroyed operator
+      // that conforms to the pattern that this rule enforces.
 
       type Check = {
         descriptors: TSESLint.ReportDescriptor<MessageIds>[];
@@ -201,7 +201,7 @@ const rule = ruleCreator({
       if (!isIdentifier(callee)) {
         return { found: false };
       }
-      if (callee.name === "takeUntil" || alias.includes(callee.name)) {
+      if (callee.name === "takeUntil" || callee.name === "takeUntilDestroyed" || alias.includes(callee.name)) {
         const [arg] = callExpression.arguments;
         if (arg) {
           if (
